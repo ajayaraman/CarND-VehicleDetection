@@ -23,9 +23,9 @@ Here's an example of a collection of images with car labels from the second data
 
 ### Pre processing training dataset
 
-The tensorflow object detection api requires data to be described as a tensorflow record prior to training. I converted both the datasets into this form. The conversion code is [tfobjdet.ipynb] in the last cell of the python notebook.
+The tensorflow object detection api requires data to be described as a tensorflow record prior to training. I converted both the datasets into this form. The conversion code is located in the file [tfobjdet.ipynb](tfobjdet.ipynb) in the last cell of the python notebook.
 
-The dataset was merged into a pandas dataframe and eventuallly split into training and test data using [train_test_split](http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html). I used 20% of the dataset for validating the detector.
+The dataset labels were read in from a cvs file and everything was merged into a single pandas dataframe. Eventuallly this pandas dataframe is split into training and test data using [train_test_split](http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html). I used 20% of the dataset for validating the detector.
 
 ### Training on dataset
 
