@@ -70,10 +70,10 @@ While the detector does well on first two images, it misses the white vehicles o
 To handle cases where the detector did not detect the vehicles in a frame I used a heatmap of past N frames and thresholded the detections to obtain a mask image. Through experimentation I determined that a history of 5 frames was sufficient to obtain better and smoother detection results. This code is in the smooth_detections() function in [det_vehicles.py](det_vehicles.py)
 
 Here's a mask output image of thresholded regions in an image
-![test1.jpg][images/test1.jpg] 
-![maskout.png][images/maskout.png]
+![test1.jpg](images/test1.jpg) 
+![maskout.png](images/maskout.png)
 
-From this mask the bounding boxes are obtained using two successive OpenCV findCounters function followed by getBoundingRect
+From this mask the bounding boxes are obtained using two successive OpenCV cv2.findContours() function followed by cv2.boundingRect() function.
 
 ### Video Implementation
 Here's a [link to my video result](./out_project_video.mp4)
@@ -88,6 +88,6 @@ Here I'll talk about the approach I took, what techniques I used, what worked an
 
 I first tried to a simpler deep learning approach where a classifier fully conv net which would be trained to classify vehicles/non-vehicles would be used to produce a heatmap that could then be turned into bounding boxes. This approach is based on a slack forum post (credit to a fellow udacity student Max Ritter who had presented this technique). This approach is presented in [the vehicle_detection.ipynb notebook](vehicle_detection.ipynb). While it worked well on the test images and looked promising it ultimately it failed to work well on the project video. I guess it was just not well trained enough to eliminate the false positives. To improve results with this approach perhaps it could have been trained for a longer duration despite the validation set error being close to 99%. 
 
-At this point I decided to try the tensorflow object detection api. I chose an SSD object detector because it is fast and would actually perform the detection in real time. The detector performs fairly well on the project video. Where it shines is in identifying the really tiny vehicles on the opposite lane of the highway.
+At this point I decided to try the tensorflow object detection api. I chose an SSD object detector because it is fast and would actually perform the detection in real time. The detector performs fairly well on the project video. Where it shines is in identifying the really tiny vehicles on the opposite lane of the highway. SSD detector does a reasonable job at detecting vehicles but is not perfect. By using a heatmap to smooth the detections, the results look good.
 
-Overall the results are very promising. However there is a lot of room for further improvement. If I were to pursue this approach further I would look at using the faster rcnn network with resnet101 convnet architecture to get more accurate detections. The detector yields overlapping boxes. This can probably be resolved with additional non-maximal suppression of the bounding boxes. I would also look at augmenting this dataset with additional examples that come from the project video. There are a number of frames in the annotaiton dataset that are taken in sequence. My feeling is that for machine learning purposes it maybe better to discard every alternate frame.
+Overall the results are very promising. However there is a lot of room for further improvement. If I were to pursue this approach further I would look at using the faster rcnn network with resnet101 convnet architecture to get more accurate detections. I would also look at augmenting this dataset with additional examples that come from the project video. There are a number of frames in the annotaiton dataset that are taken in sequence. My feeling is that for machine learning purposes it maybe better to discard every alternate frame.
