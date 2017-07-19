@@ -13,6 +13,8 @@ sys.path.append('../models/object_detection')
 from utils import label_map_util
 from utils import visualization_utils as vis_util
 
+from collections import deque
+
 class VehicleDetector:
     def __init__(self, model_file_path, label_map_path):
         
@@ -46,6 +48,8 @@ class VehicleDetector:
         categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
         self._category_index = label_map_util.create_category_index(categories)
 
+        self.history = deque(maxlen = 5)
+
     #detect cars
     def detect(self, img):
         image_batch = np.expand_dims(img, axis=0)
@@ -56,6 +60,7 @@ class VehicleDetector:
           feed_dict={self._image_tensor: image_batch})
 
         # Visualization of the results of a detection.
+        """
         vis_util.visualize_boxes_and_labels_on_image_array(
           img,
           np.squeeze(boxes),
@@ -64,8 +69,71 @@ class VehicleDetector:
           self._category_index,
           use_normalized_coordinates=True,
           line_thickness=4)
+        """
+        
 
+        boxes = np.squeeze(boxes)
+        scores = np.squeeze(scores)
+
+        boxes = self.remove_boxes_criteria( boxes, scores)
+
+        boxes = self.smooth_detections(boxes, img)
+            
+        imgout = self.annotate_image(boxes, img)
+        
+        return imgout
+
+    def remove_boxes_criteria(self, boxes, scores):
+        #only keep boxes above a certain score
+        boxes = boxes[ scores > 0.4 ]
+
+        #remove boxes that are not tall enough
+        boxes = boxes [ (boxes[:, 2] -  boxes[:, 0]) > 0.08    ]
+
+        return boxes
+
+    def annotate_image(self, boxes, img):
+        for box in boxes:
+            x, y, w, h = box
+            cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),4)
         return img
+
+    def smooth_detections(self, boxes, img):
+        mask = np.zeros( img.shape[0:2], dtype = np.uint8 )
+        xx, yy = np.meshgrid( np.arange(0, img.shape[1]), np.arange(0, img.shape[0]) )
+        for i in range(boxes.shape[0]):
+            box = tuple(boxes[i].tolist())
+            ymin, xmin, ymax, xmax = box
+            ymin *= img.shape[0]
+            ymax *= img.shape[0]
+            xmin *= img.shape[1]
+            xmax *= img.shape[1] 
+            mask[ (xx >= xmin) & (xx <= xmax) & (yy >= ymin) & (yy <= ymax) ] += 1
+        
+        self.history.append(mask)
+
+        #use history to calculate mean mask over past few images
+        smoothedmask = np.zeros(img.shape[0:2])
+        for mask in self.history:
+            smoothedmask += mask
+        smoothedmask /= len(self.history)
+
+        #threshold the mask
+        thresh = 0.01
+        smoothedmask [  smoothedmask > thresh ] = 255
+        smoothedmask [  smoothedmask <= thresh ] = 0
+
+        #count the box extents
+        # find contours
+        _, cnt, _ = cv2.findContours(smoothedmask.astype(np.uint8), cv2.RETR_TREE,
+                cv2.CHAIN_APPROX_SIMPLE)
+
+        boxes_out  = []
+        for c in cnt:
+            x,y,w,h = cv2.boundingRect(c)
+            boxes_out.append( (x,y,w,h) )
+
+        return boxes_out
         
 def run_vehicle_det(videofile, showPlayback = False):
     cap = cv2.VideoCapture(videofile)
@@ -85,10 +153,7 @@ def run_vehicle_det(videofile, showPlayback = False):
         ret, frame = cap.read()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if ret == True:
-            #crop frame to remove sky
-            img = frame[400:660]
-            outframe = detector.detect(img)
-            outframe = np.concatenate((frame[0:400], outframe, frame[660:]), axis = 0)
+            outframe = detector.detect(frame)
             outframe = cv2.cvtColor(outframe, cv2.COLOR_RGB2BGR)
             out.write(outframe)
 
@@ -116,5 +181,5 @@ def run_test_images():
 
 #run_test_images()
 
-run_vehicle_det('project_video.mp4')
+run_vehicle_det('project_video.mp4', showPlayback = True)
 

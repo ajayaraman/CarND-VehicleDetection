@@ -65,6 +65,16 @@ Here are some results of the SSD detector on test images.
 
 While the detector does well on first two images, it misses the white vehicles on the 3rd example.
 
+### Smoothing results using past history
+
+To handle cases where the detector did not detect the vehicles in a frame I used a heatmap of past N frames and thresholded the detections to obtain a mask image. Through experimentation I determined that a history of 5 frames was sufficient to obtain better and smoother detection results. This code is in the smooth_detections() function in [det_vehicles.py](det_vehicles.py)
+
+Here's a mask output image of thresholded regions in an image
+![test1.jpg][images/test1.jpg] 
+![maskout.png][images/maskout.png]
+
+From this mask the bounding boxes are obtained using two successive OpenCV findCounters function followed by getBoundingRect
+
 ### Video Implementation
 Here's a [link to my video result](./out_project_video.mp4)
 
